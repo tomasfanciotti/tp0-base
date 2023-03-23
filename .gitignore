@@ -1,5 +1,11 @@
 # Mac
 **.DS_Store
 
+# IDE
+.idea/
+
+# python
+**/__pycache__/
+
 # Executables
 bin/
