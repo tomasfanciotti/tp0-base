@@ -12,9 +12,10 @@ version = '3.9'
 server = {
     "container_name": "server",
     "image": "server:latest",
-    "entrypoint": "python3 /main.py",
+    "entrypoint": "python3 /app/main.py",
     "environment": ["PYTHONUNBUFFERED=1","LOGGING_LEVEL=DEBUG"],
-    "networks": ["testing_net"]
+    "networks": ["testing_net"],
+    "volumes": ["./server/:/app/"]
 }
 
 network = {
@@ -29,10 +30,11 @@ network = {
 client = {
     "container_name": "client",
     "image": "client:latest",
-    "entrypoint": "/client",
+    "entrypoint": "/app/client",
     "environment": ["LOGGING_LEVEL=DEBUG"],
     "networks": ["testing_net"],
-    "depends_on": ["server"]
+    "depends_on": ["server"],
+    "volumes": ["./client/:/app/config/"]
 }
 
 
