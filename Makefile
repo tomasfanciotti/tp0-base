@@ -25,15 +25,15 @@ docker-image:
 	# docker rmi `docker images --filter label=intermediateStageToBeDeleted=true -q`
 .PHONY: docker-image
 
-docker-compose-up: docker-image
-	docker compose -f docker-compose-dev.yaml up -d --build
+docc-up: docker-image
+	docker compose -f docker-compose-dev.yaml up -d --build --remove-orphans
 .PHONY: docker-compose-up
 
-docker-compose-down:
+docc-down:
 	docker compose -f docker-compose-dev.yaml stop -t 1
 	docker compose -f docker-compose-dev.yaml down
 .PHONY: docker-compose-down
 
-docker-compose-logs:
+docc-logs:
 	docker compose -f docker-compose-dev.yaml logs -f
 .PHONY: docker-compose-logs
