@@ -9,3 +9,7 @@
 
 # Executables
 bin/
+
+# generated files
+docker-compose-gen.yaml
+server/network

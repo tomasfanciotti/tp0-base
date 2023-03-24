@@ -5,6 +5,9 @@ import yaml
 MAX_CLIENTS = 10
 DEFAULT_CLIENTS = 2
 
+PROJECT_NAME = "tp0"
+NETWORK_NAME = "testing_net"
+
 version = '3.9'
 
 # Templates
@@ -13,8 +16,8 @@ server = {
     "container_name": "server",
     "image": "server:latest",
     "entrypoint": "python3 /app/main.py",
-    "environment": ["PYTHONUNBUFFERED=1","LOGGING_LEVEL=DEBUG"],
-    "networks": ["testing_net"],
+    "environment": ["PYTHONUNBUFFERED=1", "LOGGING_LEVEL=DEBUG"],
+    "networks": [NETWORK_NAME],
     "volumes": ["./server/:/app/"]
 }
 
@@ -32,7 +35,7 @@ client = {
     "image": "client:latest",
     "entrypoint": "/app/client",
     "environment": ["LOGGING_LEVEL=DEBUG"],
-    "networks": ["testing_net"],
+    "networks": [NETWORK_NAME],
     "depends_on": ["server"],
     "volumes": ["./client/:/app/config/"]
 }
@@ -53,6 +56,7 @@ def generate(clients):
     config["services"] = services
     config["version"] = version
     config["networks"] = {"testing_net": network}
+    config["name"] = PROJECT_NAME
 
     return config
 
@@ -65,10 +69,13 @@ def main():
         clients = DEFAULT_CLIENTS
 
     config = generate(clients)
-    print(config)
+    print("Servicios configurados: ", len(config["services"]))
 
     with open("docker-compose-gen.yaml", "w") as docc_file:
         yaml.dump(config, docc_file)
+
+    with open("server/network", "w") as net_file:
+        net_file.write(PROJECT_NAME + "_" + NETWORK_NAME)
 
 
 if __name__ == "__main__":
