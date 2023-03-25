@@ -15,7 +15,7 @@ build: deps
 	GOOS=linux go build -o bin/client github.com/7574-sistemas-distribuidos/docker-compose-init/client
 .PHONY: build
 
-docker-image:
+docc-build:
 	docker build -f ./server/Dockerfile -t "server:latest" .
 	docker build -f ./client/Dockerfile -t "client:latest" .
 	# Execute this command from time to time to clean up intermediate stages generated 

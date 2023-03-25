@@ -4,6 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -46,6 +49,18 @@ func (c *Client) createClientSocket() error {
 	}
 	c.conn = conn
 	return nil
+}
+
+func (c *Client) SetupGracefulShutdown() {
+
+	sigChan := make(chan os.Signal)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-sigChan
+		c.conn.Close()
+		log.Errorf("action: receive_message | result: fail | client_id: %v ",c.config.ID)
+	}()
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
