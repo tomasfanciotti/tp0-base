@@ -1,6 +1,13 @@
 import socket
 import logging
 import signal
+from .messaging_protocol import Packet, decode, receive, send
+from .national_lottery import *
+
+# OpCodes
+OP_CODE_REGISTER = 1
+OP_CODE_REGISTER_ACK = 2
+
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -41,12 +48,22 @@ class Server:
         client socket will also be closed
         """
         try:
-            # TODO: Modify the receive to avoid short-reads
-            msg = client_sock.recv(1024).rstrip().decode('utf-8')
+            packet = receive(client_sock)
             addr = client_sock.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
-            # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format(msg).encode('utf-8'))
+
+            logging.debug(f'action: receive_message | result: success | ip: {addr[0]} | msg: {packet.data.decode()}')
+
+            if packet.opcode == OP_CODE_REGISTER:
+                argv = decode(packet.data)
+                dni, number = register_bet(argv)
+                if dni and number:
+                    logging.info(f'action: apuesta_almacenada | result: success | dni: ${dni} | numero: ${number}')
+                    response = Packet.new(OP_CODE_REGISTER_ACK, "")
+                    send(client_sock, response)
+
+                else:
+                    logging.error(f'action: apuesta_almacenada | result: fail | ip: ${addr[0]} | args: ${argv}')
+
         except OSError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:

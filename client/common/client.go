@@ -42,7 +42,7 @@ func (c *Client) createClientSocket() error {
 	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
 		log.Fatalf(
-	        "action: connect | result: fail | client_id: %v | error: %v",
+			"action: connect | result: fail | client_id: %v | error: %v",
 			c.config.ID,
 			err,
 		)
@@ -59,7 +59,7 @@ func (c *Client) SetupGracefulShutdown() {
 	go func() {
 		<-sigChan
 		c.conn.Close()
-		log.Errorf("action: receive_message | result: fail | client_id: %v ",c.config.ID)
+		log.Errorf("action: receive_message | result: fail | client_id: %v ", c.config.ID)
 	}()
 }
 
@@ -73,9 +73,9 @@ loop:
 	for timeout := time.After(c.config.LoopLapse); ; {
 		select {
 		case <-timeout:
-	        log.Infof("action: timeout_detected | result: success | client_id: %v",
-                c.config.ID,
-            )
+			log.Infof("action: timeout_detected | result: success | client_id: %v",
+				c.config.ID,
+			)
 			break loop
 		default:
 		}
@@ -96,19 +96,38 @@ loop:
 
 		if err != nil {
 			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-                c.config.ID,
+				c.config.ID,
 				err,
 			)
 			return
 		}
 		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-            c.config.ID,
-            msg,
-        )
+			c.config.ID,
+			msg,
+		)
 
 		// Wait a time between sending one message and the next one
 		time.Sleep(c.config.LoopPeriod)
 	}
 
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+}
+
+func (c *Client) LoadSingleBet(bet *Bet) {
+
+	c.createClientSocket()
+
+	lottery := NewLottery(&c.conn)
+	res, err := lottery.almacenar_apuesta(bet, c.config.ID)
+
+	if err != nil || !res {
+		log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return
+	}
+
+	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", bet.Dni, bet.Numero)
+
 }

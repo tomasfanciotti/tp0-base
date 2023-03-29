@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
+	"github.com/joho/godotenv"
 )
 
 // InitConfig Function that uses viper library to parse configuration parameters.
@@ -66,11 +68,11 @@ func InitLogger(logLevel string) error {
 		return err
 	}
 
-    customFormatter := &logrus.TextFormatter{
-      TimestampFormat: "2006-01-02 15:04:05",
-      FullTimestamp: false,
-    }
-    logrus.SetFormatter(customFormatter)
+	customFormatter := &logrus.TextFormatter{
+		TimestampFormat: "2006-01-02 15:04:05",
+		FullTimestamp:   false,
+	}
+	logrus.SetFormatter(customFormatter)
 	logrus.SetLevel(level)
 	return nil
 }
@@ -79,12 +81,12 @@ func InitLogger(logLevel string) error {
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
 	logrus.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_lapse: %v | loop_period: %v | log_level: %s",
-	    v.GetString("id"),
-	    v.GetString("server.address"),
-	    v.GetDuration("loop.lapse"),
-	    v.GetDuration("loop.period"),
-	    v.GetString("log.level"),
-    )
+		v.GetString("id"),
+		v.GetString("server.address"),
+		v.GetDuration("loop.lapse"),
+		v.GetDuration("loop.period"),
+		v.GetString("log.level"),
+	)
 }
 
 func main() {
@@ -100,6 +102,35 @@ func main() {
 	// Print program config with debugging purposes
 	PrintConfig(v)
 
+	// Get the data to process
+	err = godotenv.Load("/app/config/.env")
+	if err != nil {
+		log.Fatal("Error cargando el archivo .env")
+	}
+
+	// Acceder a las variables de entorno
+	nombre := os.Getenv("NOMBRE")
+	apellido := os.Getenv("APELLIDO")
+	documento := os.Getenv("DOCUMENTO")
+	nacimiento := os.Getenv("NACIMIENTO")
+	numero := os.Getenv("NUMERO")
+
+	newBet := common.Bet{
+		Nombre:     nombre,
+		Apellido:   apellido,
+		Dni:        documento,
+		Nacimiento: nacimiento,
+		Numero:     numero,
+	}
+
+    logrus.Infof("action: ENVARs | result: success | nombre: %s | apellido: %s | dni: %v | nacimiento: %v | numero: %s",
+    		nombre,
+    		apellido,
+    		documento,
+    		nacimiento,
+    		numero,
+    	)
+
 	clientConfig := common.ClientConfig{
 		ServerAddress: v.GetString("server.address"),
 		ID:            v.GetString("id"),
@@ -109,5 +140,6 @@ func main() {
 
 	client := common.NewClient(clientConfig)
 	client.SetupGracefulShutdown()
-	client.StartClientLoop()
+	// client.StartClientLoop()
+	client.LoadSingleBet(&newBet)
 }
