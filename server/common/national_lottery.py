@@ -1,7 +1,30 @@
-from .utils import Bet, store_bets,load_bets,has_won
+from .utils import Bet, store_bets, load_bets, has_won
+import threading
 
 AGENCY_EXPECTED = 5
-agency_readyness = []
+
+class SharedVariable():
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.agency_readyness = []
+
+    def add_agency(self, agency):
+
+        with self.lock:
+            if agency not in self.agency_readyness:
+                self.agency_readyness.append(agency)
+
+    def all_agency_ready(self):
+
+        with self.lock:
+            result = len(self.agency_readyness) == AGENCY_EXPECTED
+
+        return result
+
+
+shared = SharedVariable()
+
 
 def register_bet(argv):
     new_bet = Bet(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5])
@@ -40,9 +63,9 @@ def register_batch(argv):
 def ready(argv):
 
     agency_id = argv.pop(0)
-    agency_readyness.append(agency_id)
+    shared.add_agency(agency_id)
 
-    if len(agency_readyness) != AGENCY_EXPECTED:
+    if shared.all_agency_ready():
         return agency_id, False
 
     return agency_id, True
@@ -52,7 +75,7 @@ def ask_winner(argv):
 
     agency_id = argv.pop(0)
 
-    if len(agency_readyness) != AGENCY_EXPECTED:
+    if not shared.all_agency_ready():
         return agency_id, None
     
     winners = []

@@ -3,6 +3,9 @@ import logging
 import signal
 from .messaging_protocol import Packet, decode, receive, send
 from .national_lottery import *
+import concurrent
+from concurrent.futures import ThreadPoolExecutor
+
 
 # OpCodes
 OP_CODE_ZERO = 0
@@ -37,14 +40,18 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
-        while self.listening:
-            try:
-                client_sock = self.__accept_new_connection()
-                self.__handle_client_connection(client_sock)
-            except OSError as e:
-                logging.error(f"action: accept_connections | result: fail | error: {e}")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            while self.listening:
+                try:
+                    client_sock = self.__accept_new_connection()
+                    #self.__handle_client_connection(client_sock)
 
-        logging.info(f"action: run | result: succes | msg: server shutting down ")
+                    executor.submit(self.__handle_client_connection, client_sock)
+
+                except OSError as e:
+                    logging.error(f"action: accept_connections | result: fail | error: {e}")
+
+        logging.info(f"action: run | result: finished | msg: server shutting down ")
 
     def __handle_client_connection(self, client_sock):
         """

@@ -1,6 +1,6 @@
 import csv
 import datetime
-import time
+import threading
 
 
 """ Bets storage location. """
@@ -8,6 +8,7 @@ STORAGE_FILEPATH = "./bets.csv"
 """ Simulated winner number in the lottery contest. """
 LOTTERY_WINNER_NUMBER = 7574
 
+lock = threading.Lock()
 
 """ A lottery bet registry. """
 class Bet:
@@ -30,22 +31,25 @@ def has_won(bet: Bet) -> bool:
 
 """
 Persist the information of each bet in the STORAGE_FILEPATH file.
-Not thread-safe/process-safe.
 """
 def store_bets(bets: list[Bet]) -> None:
+    lock.acquire()
     with open(STORAGE_FILEPATH, 'a+') as file:
         writer = csv.writer(file, quoting=csv.QUOTE_MINIMAL)
         for bet in bets:
             writer.writerow([bet.agency, bet.first_name, bet.last_name,
                              bet.document, bet.birthdate, bet.number])
+    lock.release()
 
 """
 Loads the information all the bets in the STORAGE_FILEPATH file.
-Not thread-safe/process-safe.
 """
 def load_bets() -> list[Bet]:
+
+    lock.acquire()
     with open(STORAGE_FILEPATH, 'r') as file:
         reader = csv.reader(file, quoting=csv.QUOTE_MINIMAL)
         for row in reader:
             yield Bet(row[0], row[1], row[2], row[3], row[4], row[5])
+    lock.release()
 
