@@ -49,9 +49,27 @@ Códigos de operacion definidos:
 | ------------- | ------------- | ---- |
 | 0  | Cierre de conexión | _empty_ |
 | 1  | Registrar una apuesta  | [ `id-cliente`, `nombre`, `apellido`, `documento`, `nacimiento`, `numero`] |
-| 2 | Apuesta registrada correctamente  | _empty_
+| 2 |  ACK del servidor  | _empty_
 | 3  | Registrar un batch de _n_ apuestas  | [ n , "@0", [apuesta_0] , .. "@n", [apuesta_n]  ] |
 | 4  | Comunicar un error | Mensaje de error |
+| 5  | Agencia lista para sorteo | [ `id-client`] |
+| 6  | Solicitar ganadores | [ `id-client` ] |
+| 7  | Envío de ganadores | [ `dni1`, .. ,`dniN` ] |
+| 8  | Servidor ocupado | _empty_ |
+
+
+### Concurrencia
+El servidor implementa procesamiento concurrente para poder atender las requests de los clientes y mecanismos de sincronización que permiten
+el acceso controlado a recursos compartidos.
+
+Para poder atender concurrentemente a los clientes se tiene un pool de `n` executors (parámetro configurable), objeto provisto por la
+librería ``concurrent.futures`` que permite lanzar concurrentemente las tareas que se encargan de manejar las conexiones entrantes del servidor.
+
+
+Por otro lado, el mainthread se encarga de continuar escuchando nuevas conexiones.
+
+El mecanismo de sincronización utilizado principalmente para la escritura y lectura de archivos y el acceso a variables de control compartidas
+es el `Lock()` que provee la librería `threading`. 
 
 ------
 
