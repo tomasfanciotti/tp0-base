@@ -2,8 +2,11 @@ from socket import socket
 import logging
 
 # Config
-HEADER_LENGHT = 4
-MAX_PACKET_SIZE = 1024
+ENDIANNES = "big"
+OP_CODE_BYTES = 1
+DATA_LENGHT_BYTES = 4
+HEADER_LENGHT = OP_CODE_BYTES + DATA_LENGHT_BYTES
+MAX_PACKET_SIZE = 8192
 
 # Encoders and decoders
 
@@ -50,7 +53,8 @@ def receive(s: socket):
 
     # Receive header
     read_bytes = __receive(s, HEADER_LENGHT)
-    opcode, data_lenght = int(read_bytes.decode()[0]), int(read_bytes.decode()[1:])
+    opcode = int.from_bytes(read_bytes[:OP_CODE_BYTES], ENDIANNES)
+    data_lenght = int.from_bytes(read_bytes[OP_CODE_BYTES:], ENDIANNES)
 
     # Receive data
     to_read = min(data_lenght, MAX_PACKET_SIZE)
@@ -72,7 +76,8 @@ def receive(s: socket):
 def send(s: socket, packet: Packet):
 
     # send header
-    encoded_header = bytes("{}{:03d}".format(packet.opcode, packet.data_lenght), encoding="utf-8")
+    encoded_header = packet.opcode.to_bytes(OP_CODE_BYTES, ENDIANNES)\
+                     + packet.data_lenght.to_bytes(DATA_LENGHT_BYTES, ENDIANNES)
     sent_bytes = __send(s, encoded_header)
 
     # send data

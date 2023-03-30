@@ -35,7 +35,7 @@ Esta capa se ubica sobre la anterior y en ella se implementa el formato de mensa
 Se define un paquete de capa de aplicación llamado "Packet" que cuenta con los siguientes 3 campos:
 
 - `OPCODE` - Es el código de operación (Type). Se asigna 1 byte para este campo y sus posibles valores son definidos por la capa superior que contendrá la lógica de negocio.
-- `DATA_LENGHT` - Es el tamaño en bytes del body (Lenght). Se asignan 3 bytes para este campo.
+- `DATA_LENGHT` - Es el tamaño en bytes del body (Lenght). Se asignan 4 bytes para este campo.
 - `DATA` - Cadena de bytes que será enviada o recibida por el socket (Value). Representa la información necesaria para ejecutar el OPCODE correspondiente.
 
 Otra de las funciones importantes de esta capa es fragmentar el vector de bytes en varios segmentos del tamaño maximo configurado para ser enviados, y su contraparte, ensamblar los fragmentos recibidos en un único vector de bytes para luego ser enviado a la capa superior.

@@ -1,17 +1,19 @@
 package common
 
 import (
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"net"
 	"strconv"
 	"strings"
+	"encoding/binary"
 )
 
 // Config
 const (
-	HeaderLength  = 4
-	MaxPacketSize = 1024
+    opcodeBytes = 1
+    dataLengthBytes = 4
+	headerBytes = opcodeBytes + dataLengthBytes
+	MaxPacketSize = 8192
 )
 
 // Encoders and decoders
@@ -59,13 +61,12 @@ func NewPacket(opcode int, data interface{}) *Packet {
 
 func Receive(conn net.Conn) (*Packet, error) {
 
-	headerBytes, err := receive(conn, HeaderLength)
+	encodedHeader, err := receive(conn, headerBytes)
 	if err != nil {
 		return nil, err
 	}
-
-	opcode, _ := strconv.Atoi(string(headerBytes[0]))
-	dataLength, _ := strconv.Atoi(string(headerBytes[1:]))
+    opcode := int(uint8(encodedHeader[0]))
+    dataLength := int(binary.BigEndian.Uint32(encodedHeader[opcodeBytes:]))
 
 	buffer := []byte{}
 	for len(buffer) < dataLength {
@@ -83,8 +84,11 @@ func Receive(conn net.Conn) (*Packet, error) {
 
 func Send(conn net.Conn, packet *Packet) error {
 
-	headerBytes := []byte(fmt.Sprintf("%d%03d", packet.opcode, packet.dataLength))
-	if _, err := send(conn, headerBytes); err != nil {
+    encodedHeader := make([]byte, headerBytes)
+    encodedHeader[0] = byte(packet.opcode)
+    binary.BigEndian.PutUint32(encodedHeader[1:], uint32(packet.dataLength))
+
+	if _, err := send(conn, encodedHeader); err != nil {
 		return err
 	}
 
