@@ -1,5 +1,7 @@
-from .utils import Bet, store_bets
+from .utils import Bet, store_bets,load_bets,has_won
 
+AGENCY_EXPECTED = 5
+agency_readyness = []
 
 def register_bet(argv):
     new_bet = Bet(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5])
@@ -33,3 +35,30 @@ def register_batch(argv):
     store_bets(buffer)
 
     return len(buffer)
+
+
+def ready(argv):
+
+    agency_id = argv.pop(0)
+    agency_readyness.append(agency_id)
+
+    if len(agency_readyness) != AGENCY_EXPECTED:
+        return agency_id, False
+
+    return agency_id, True
+
+
+def ask_winner(argv):
+
+    agency_id = argv.pop(0)
+
+    if len(agency_readyness) != AGENCY_EXPECTED:
+        return agency_id, None
+    
+    winners = []
+    bets = load_bets()
+    for bet in bets:
+        if bet.agency == int(agency_id) and has_won(bet):
+            winners.append(bet.document)
+
+    return agency_id, winners

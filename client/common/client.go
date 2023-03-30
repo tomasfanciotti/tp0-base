@@ -13,6 +13,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	WAITING_PERIOD = 4
+)
+
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
 	ID            string
@@ -129,6 +133,8 @@ func (c *Client) LoadSingleBet(bet *Bet) {
 		return
 	}
 
+	c.conn.Close()
+
 	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", bet.Dni, bet.Numero)
 
 }
@@ -146,8 +152,6 @@ func (c *Client) LoadBatchBets(chunkFile string, batchSize int) {
 	chunk := []Bet{}
 	total_bets := 0
 
-	c.createClientSocket()
-
 	lottery := NewLottery(&c.conn)
 
 	for scanner.Scan() {
@@ -160,20 +164,25 @@ func (c *Client) LoadBatchBets(chunkFile string, batchSize int) {
 
 		bet := newBet(c.config.ID, campos[0], campos[1], campos[2], campos[3], campos[4])
 		chunk = append(chunk, bet)
-		total_bets += 1
 
 		if len(chunk) >= batchSize {
 
+			c.createClientSocket()
 			if _, err := lottery.almacenar_bacth(chunk); err != nil {
 				log.Errorf("action: send_chunk | result: fail | err: %s", err)
+			} else {
+				total_bets += 1
 			}
+			c.conn.Close()
 			chunk = []Bet{}
 		}
 	}
 
+	c.createClientSocket()
 	if _, err := lottery.almacenar_bacth(chunk); err != nil {
 		log.Errorf("action: send_chunk | result: fail | err: %s", err)
 	}
+	c.conn.Close()
 
 	// Verificar si hubo algún error durante la lectura del archivo.
 	if err := scanner.Err(); err != nil {
@@ -182,4 +191,30 @@ func (c *Client) LoadBatchBets(chunkFile string, batchSize int) {
 	}
 
 	log.Infof("action: send_chunk | result: success | total: %d", total_bets)
+
+	// Termine
+	c.createClientSocket()
+	if _, err := lottery.ready(c.config.ID); err != nil {
+		log.Errorf("action: ready | result: fail | err: %s", err)
+	}
+	c.conn.Close()
+
+	// Ask for winner
+	for {
+
+		c.createClientSocket()
+		result, err := lottery.winner(c.config.ID)
+		if err != nil {
+			log.Errorf("action: consulta_ganadores | result: fail | err: %s", err)
+			break
+		}
+		c.conn.Close()
+
+		if result != nil {
+			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d | ganadores: %v", len(result), result)
+			break
+		}
+		log.Errorf("action: consulta_ganadores | result: fail | msgs: servidor_ocupado")
+		time.Sleep(WAITING_PERIOD * time.Second)
+	}
 }

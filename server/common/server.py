@@ -10,7 +10,10 @@ OP_CODE_REGISTER = 1
 OP_CODE_REGISTER_ACK = 2
 OP_CODE_REGISTER_BATCH = 3
 OP_CODE_ERROR = 4
-
+OP_CODE_AGENCY_READY   = 5
+OP_CODE_ASK_WINNER     = 6
+OP_CODE_WINNERS        = 7
+OP_CODE_SERVER_BUSSY   = 8
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -89,8 +92,33 @@ class Server:
 
                         logging.error(f'action: procesar_batch | result: fail | ip: {addr[0]} | stored: {0}')
 
+                elif packet.opcode == OP_CODE_AGENCY_READY:
+
+                    argv = decode(packet.data)
+                    client_id, all_clients_ready = ready(argv)
+                    response = Packet.new(OP_CODE_REGISTER_ACK, "")
+                    send(client_sock, response)
+                    logging.info(f'action: agencia_lista | result: success | ip: {addr[0]} | client_id : {client_id}')
+
+                    if all_clients_ready:
+                        logging.info(f'action: sorteo | result: success')
+
+                elif packet.opcode == OP_CODE_ASK_WINNER:
+                    
+                    argv = decode(packet.data)
+                    agency_id, winners = ask_winner(argv)
+
+                    if winners is None:
+                        response = Packet.new(OP_CODE_SERVER_BUSSY, "")
+                        send(client_sock, response)
+                        logging.info(f'action: consulta_ganadores | result: fail | client_id : {agency_id} | msg: esperando por otras agencias')
+                    else:
+                        response = Packet.new(OP_CODE_WINNERS, winners)
+                        send(client_sock, response)
+                        logging.info(f'action: consulta_ganadores | result: success | client_id : {agency_id} | winners: {winners}')
+
                 elif packet.opcode == OP_CODE_ZERO:
-                    logging.info(f'action: disconnected | result: success | ip: {addr[0]} ')
+                    logging.info(f'action: disconnected | result: success | ip: {addr[0]}')
                     break
 
         except OSError as e:
