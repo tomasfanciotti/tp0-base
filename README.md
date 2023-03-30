@@ -4,6 +4,56 @@ En el presente repositorio se provee un ejemplo de cliente-servidor el cual corr
 
 Por otro lado, se presenta una guía de ejercicios que los alumnos deberán resolver teniendo en cuenta las consideraciones generales descriptas al pie de este archivo.
 
+## Resolución 
+
+### Scripts disponibles
+
+* ``./build.sh [server|client]`` : Crea las imagenes utilizando la configuración definida en cada respectivo Dockerfile.
+* ``./run.sh [n]`` : Levanta docker compose con los recursos configurados según 'tp0-doccgen.py' utilizando "n" clientes (o 2 en caso omiso).
+* ``./run.sh logs`` : Abre los logs de los servicios.
+* ``./run.sh test`` : Con el servidor levantado, crea un container temporal dentro de la misma red para probar el servidor.
+  * Dentro de la instancia de prueba ejecutar ``./test-server.sh``.
+* ``./stop.sh [-k]`` : Detiene los recursos creados en docker compose. Al utilizar "-k" los elimina.
+
+### Protocolo de comunicación utilizado
+
+El protocolo de comunicación implementado se basa en el pasaje de mensajes sobre el protocolo TCP de la capa de transporte, utilizando paquetes basados en el formato TLV (Type-Lenght-Value) para soportar operaciones con mensajes variables y así hacer un uso justo y necesario de la red.
+
+El protocolo implementado se divide en 3 capas:
+
+3- Capa de aplicación  
+2- Capa empaquetado TLV         
+1- Capa de comunicación         
+
+#### Comunicación
+Es la capa mas baja del protocolo implementado y se ubica inmediatamente sobre la capa de transporte (protocolo TCP).
+Su función es proveer una primera abstracción de los sockets, implementando `send(buffer)` y `receive(n)` que permitan una escritura y lectura limpia, evitando fenómenos como short-read y short-write.
+
+#### Empaquetado TLV
+Esta capa se ubica sobre la anterior y en ella se implementa el formato de mensajes TLV. Su función es organizar la lectura y escritura en dos etapas: una para el header y otra para el body. De esta manera se consiguen mensajes de longitud variable.
+
+Se define un paquete de capa de aplicación llamado "Packet" que cuenta con los siguientes 3 campos:
+
+- `OPCODE` - Es el código de operación (Type). Se asigna 1 byte para este campo y sus posibles valores son definidos por la capa superior que contendrá la lógica de negocio.
+- `DATA_LENGHT` - Es el tamaño en bytes del body (Lenght). Se asignan 3 bytes para este campo.
+- `DATA` - Cadena de bytes que será enviada o recibida por el socket (Value). Representa la información necesaria para ejecutar el OPCODE correspondiente.
+
+Otra de las funciones importantes de esta capa es fragmentar el vector de bytes en varios segmentos del tamaño maximo configurado para ser enviados, y su contraparte, ensamblar los fragmentos recibidos en un único vector de bytes para luego ser enviado a la capa superior.
+
+#### Aplicación 
+Esta capa define cuales son los OPCODES que serán válidos y provee interfaces para que el cliente pueda hacer uso de estas operaciones abstrayendose del mecanismo de comunicación y una interfaz para que el servidor pueda procesar las operaciones.
+
+Códigos de operacion definidos:
+
+| Codigo  | Función | Data |
+| ------------- | ------------- | ---- |
+| 1  | Registrar una apuesta  | [ `id-cliente`, `nombre`, `apellido`, `documento`, `nacimiento`, `numero`] |
+| 2 | Apuesta registrada correctamente  | _empty_
+
+
+
+------
+
 ## Instrucciones de uso
 El repositorio cuenta con un **Makefile** que posee encapsulado diferentes comandos utilizados recurrentemente en el proyecto en forma de targets. Los targets se ejecutan mediante la invocación de:
 

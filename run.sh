@@ -5,6 +5,11 @@ if [ "$1" == "test" ]; then
     docker build -f ./netcat/Dockerfile -t "netcat:latest" .
     docker run --rm --network "$(cat ./server/network)" -i -t "netcat:latest"
 
+elif [ "$1" == "logs" ]; then
+
+      # Show logs
+      docker compose -f docker-compose-gen.yaml logs -f
+
 else
 
   # Docker Compose Up
