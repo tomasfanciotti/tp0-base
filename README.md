@@ -47,13 +47,25 @@ Códigos de operacion definidos:
 
 | Codigo  | Función | Data |
 | ------------- | ------------- | ---- |
+| 0  | Cierre de conexión | _empty_ |
 | 1  | Registrar una apuesta  | [ `id-cliente`, `nombre`, `apellido`, `documento`, `nacimiento`, `numero`] |
 | 2 | Apuesta registrada correctamente  | _empty_
-
-
+| 3  | Registrar un batch de _n_ apuestas  | [ n , "@0", [apuesta_0] , .. "@n", [apuesta_n]  ] |
+| 4  | Comunicar un error | Mensaje de error |
 
 ------
 
+## Requisitos de ejecución
+
+#### Ej5
+Se debe configurar un archivo `.env` dentro de la carpeta ./client/ con la los valores de los campos a enviar.
+
+
+#### Ej6
+Se debe descomprimir el `dataset.zip` dentro de la carpeta ./.data/dataset/
+
+
+---
 ## Instrucciones de uso
 El repositorio cuenta con un **Makefile** que posee encapsulado diferentes comandos utilizados recurrentemente en el proyecto en forma de targets. Los targets se ejecutan mediante la invocación de:
 

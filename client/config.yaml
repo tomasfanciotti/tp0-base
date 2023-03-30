@@ -6,3 +6,5 @@ loop:
   period: "5s"
 log:
   level: "debug"
+batching:
+  size: "1000"

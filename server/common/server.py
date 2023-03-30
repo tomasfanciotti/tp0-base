@@ -5,8 +5,11 @@ from .messaging_protocol import Packet, decode, receive, send
 from .national_lottery import *
 
 # OpCodes
+OP_CODE_ZERO = 0
 OP_CODE_REGISTER = 1
 OP_CODE_REGISTER_ACK = 2
+OP_CODE_REGISTER_BATCH = 3
+OP_CODE_ERROR = 4
 
 
 class Server:
@@ -15,7 +18,7 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
-        self.listening=True
+        self.listening = True
         signal.signal(signal.SIGTERM, self.__stop_listening)
 
     def __stop_listening(self, *args):
@@ -48,21 +51,47 @@ class Server:
         client socket will also be closed
         """
         try:
-            packet = receive(client_sock)
-            addr = client_sock.getpeername()
+            while True:
+                packet = receive(client_sock)
+                addr = client_sock.getpeername()
+                logging.debug(
+                    f'action: receive_message | result: success | ip: {addr[0]} | msg: {packet.data.decode()}')
 
-            logging.debug(f'action: receive_message | result: success | ip: {addr[0]} | msg: {packet.data.decode()}')
+                if packet.opcode == OP_CODE_REGISTER:
 
-            if packet.opcode == OP_CODE_REGISTER:
-                argv = decode(packet.data)
-                dni, number = register_bet(argv)
-                if dni and number:
-                    logging.info(f'action: apuesta_almacenada | result: success | dni: ${dni} | numero: ${number}')
-                    response = Packet.new(OP_CODE_REGISTER_ACK, "")
-                    send(client_sock, response)
+                    argv = decode(packet.data)
+                    dni, number = register_bet(argv)
+                    if dni and number:
+                        logging.info(f'action: apuesta_almacenada | result: success | dni: ${dni} | numero: ${number}')
+                        response = Packet.new(OP_CODE_REGISTER_ACK, "")
+                        send(client_sock, response)
 
-                else:
-                    logging.error(f'action: apuesta_almacenada | result: fail | ip: ${addr[0]} | args: ${argv}')
+                    else:
+                        logging.error(f'action: apuesta_almacenada | result: fail | ip: ${addr[0]} | args: ${argv}')
+                        response = Packet.new(OP_CODE_ERROR, "Error al procesar la apuesta enviada")
+                        send(client_sock, response)
+
+                elif packet.opcode == OP_CODE_REGISTER_BATCH:
+
+                    logging.debug(
+                        f'action: procesar_batch | result: in_progress | ip: ${addr[0]} | arg len: ${len(packet.data)}')
+
+                    argv = decode(packet.data)
+                    result = register_batch(argv)
+                    if result:
+                        response = Packet.new(OP_CODE_REGISTER_ACK, "")
+                        send(client_sock, response)
+
+                        logging.info(f'action: procesar_batch | result: success | ip: {addr[0]} | stored: {result}')
+                    else:
+                        response = Packet.new(OP_CODE_ERROR, "Error al procesar el batch enviado")
+                        send(client_sock, response)
+
+                        logging.error(f'action: procesar_batch | result: fail | ip: {addr[0]} | stored: {0}')
+
+                elif packet.opcode == OP_CODE_ZERO:
+                    logging.info(f'action: disconnected | result: success | ip: {addr[0]} ')
+                    break
 
         except OSError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")

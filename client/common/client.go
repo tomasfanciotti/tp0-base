@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -130,4 +131,55 @@ func (c *Client) LoadSingleBet(bet *Bet) {
 
 	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", bet.Dni, bet.Numero)
 
+}
+
+func (c *Client) LoadBatchBets(chunkFile string, batchSize int) {
+
+	file, err := os.Open(chunkFile)
+	if err != nil {
+		log.Errorf("action: open_chunk_file | result: fail | err: %s", err)
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	chunk := []Bet{}
+	total_bets := 0
+
+	c.createClientSocket()
+
+	lottery := NewLottery(&c.conn)
+
+	for scanner.Scan() {
+		campos := strings.Split(strings.TrimRight(scanner.Text(), "\n"), ",")
+
+		if len(campos) != 5 {
+			log.Info("action: scan_chunk_file | result: warning | msg: line fields does not match with a bet register. ignoring")
+			continue
+		}
+
+		bet := newBet(c.config.ID, campos[0], campos[1], campos[2], campos[3], campos[4])
+		chunk = append(chunk, bet)
+		total_bets += 1
+
+		if len(chunk) >= batchSize {
+
+			if _, err := lottery.almacenar_bacth(chunk); err != nil {
+				log.Errorf("action: send_chunk | result: fail | err: %s", err)
+			}
+			chunk = []Bet{}
+		}
+	}
+
+	if _, err := lottery.almacenar_bacth(chunk); err != nil {
+		log.Errorf("action: send_chunk | result: fail | err: %s", err)
+	}
+
+	// Verificar si hubo algún error durante la lectura del archivo.
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error al leer el archivo:", err)
+		return
+	}
+
+	log.Infof("action: send_chunk | result: success | total: %d", total_bets)
 }

@@ -37,6 +37,7 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "period")
 	v.BindEnv("loop", "lapse")
 	v.BindEnv("log", "level")
+	v.BindEnv("batching", "size")
 
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
@@ -80,12 +81,13 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	logrus.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_lapse: %v | loop_period: %v | log_level: %s",
+	logrus.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_lapse: %v | loop_period: %v | log_level: %s | batch_size: %d",
 		v.GetString("id"),
 		v.GetString("server.address"),
 		v.GetDuration("loop.lapse"),
 		v.GetDuration("loop.period"),
 		v.GetString("log.level"),
+		v.GetInt("batching.size"),
 	)
 }
 
@@ -109,27 +111,8 @@ func main() {
 	}
 
 	// Acceder a las variables de entorno
-	nombre := os.Getenv("NOMBRE")
-	apellido := os.Getenv("APELLIDO")
-	documento := os.Getenv("DOCUMENTO")
-	nacimiento := os.Getenv("NACIMIENTO")
-	numero := os.Getenv("NUMERO")
-
-	newBet := common.Bet{
-		Nombre:     nombre,
-		Apellido:   apellido,
-		Dni:        documento,
-		Nacimiento: nacimiento,
-		Numero:     numero,
-	}
-
-    logrus.Infof("action: ENVARs | result: success | nombre: %s | apellido: %s | dni: %v | nacimiento: %v | numero: %s",
-    		nombre,
-    		apellido,
-    		documento,
-    		nacimiento,
-    		numero,
-    	)
+	chunk_file := os.Getenv("CHUNK_FILE")
+	logrus.Infof("action: load .env | result: success | chunk_file: %s ", chunk_file)
 
 	clientConfig := common.ClientConfig{
 		ServerAddress: v.GetString("server.address"),
@@ -141,5 +124,6 @@ func main() {
 	client := common.NewClient(clientConfig)
 	client.SetupGracefulShutdown()
 	// client.StartClientLoop()
-	client.LoadSingleBet(&newBet)
+	// client.LoadSingleBet(&newBet)
+	client.LoadBatchBets(chunk_file, v.GetInt("batching.size"))
 }
