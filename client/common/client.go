@@ -27,15 +27,17 @@ type ClientConfig struct {
 
 // Client Entity that encapsulates how
 type Client struct {
-	config ClientConfig
-	conn   net.Conn
+	config  ClientConfig
+	conn    net.Conn
+	running bool
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
-		config: config,
+		config:  config,
+		running: false,
 	}
 	return client
 }
@@ -72,6 +74,7 @@ func (c *Client) SetupGracefulShutdown() {
 func (c *Client) StartClientLoop() {
 	// autoincremental msgID to identify every message sent
 	msgID := 1
+	c.running = true
 
 loop:
 	// Send messages if the loopLapse threshold has not been surpassed
@@ -83,6 +86,9 @@ loop:
 			)
 			break loop
 		default:
+			if !c.running {
+				break
+			}
 		}
 
 		// Create the connection the server in every loop iteration. Send an
@@ -141,6 +147,7 @@ func (c *Client) LoadSingleBet(bet *Bet) {
 
 func (c *Client) LoadBatchBets(chunkFile string, batchSize int) {
 
+	c.running = true
 	file, err := os.Open(chunkFile)
 	if err != nil {
 		log.Errorf("action: open_chunk_file | result: fail | err: %s", err)
@@ -200,7 +207,7 @@ func (c *Client) LoadBatchBets(chunkFile string, batchSize int) {
 	c.conn.Close()
 
 	// Ask for winner
-	for {
+	for c.running {
 
 		c.createClientSocket()
 		result, err := lottery.winner(c.config.ID)

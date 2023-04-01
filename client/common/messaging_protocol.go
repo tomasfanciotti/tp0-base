@@ -1,19 +1,21 @@
 package common
 
 import (
-	log "github.com/sirupsen/logrus"
+	"encoding/binary"
+	"errors"
 	"net"
 	"strconv"
 	"strings"
-	"encoding/binary"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Config
 const (
-    opcodeBytes = 1
-    dataLengthBytes = 4
-	headerBytes = opcodeBytes + dataLengthBytes
-	MaxPacketSize = 8192
+	opcodeBytes     = 1
+	dataLengthBytes = 4
+	headerBytes     = opcodeBytes + dataLengthBytes
+	MaxPacketSize   = 8192
 )
 
 // Encoders and decoders
@@ -65,8 +67,8 @@ func Receive(conn net.Conn) (*Packet, error) {
 	if err != nil {
 		return nil, err
 	}
-    opcode := int(uint8(encodedHeader[0]))
-    dataLength := int(binary.BigEndian.Uint32(encodedHeader[opcodeBytes:]))
+	opcode := int(uint8(encodedHeader[0]))
+	dataLength := int(binary.BigEndian.Uint32(encodedHeader[opcodeBytes:]))
 
 	buffer := []byte{}
 	for len(buffer) < dataLength {
@@ -84,9 +86,9 @@ func Receive(conn net.Conn) (*Packet, error) {
 
 func Send(conn net.Conn, packet *Packet) error {
 
-    encodedHeader := make([]byte, headerBytes)
-    encodedHeader[0] = byte(packet.opcode)
-    binary.BigEndian.PutUint32(encodedHeader[1:], uint32(packet.dataLength))
+	encodedHeader := make([]byte, headerBytes)
+	encodedHeader[0] = byte(packet.opcode)
+	binary.BigEndian.PutUint32(encodedHeader[1:], uint32(packet.dataLength))
 
 	if _, err := send(conn, encodedHeader); err != nil {
 		return err
@@ -109,7 +111,6 @@ func Send(conn net.Conn, packet *Packet) error {
 	return nil
 }
 
-
 // Lower layer
 
 func receive(conn net.Conn, bytes_to_read int) ([]byte, error) {
@@ -126,7 +127,7 @@ func receive(conn net.Conn, bytes_to_read int) ([]byte, error) {
 		}
 
 		if actual_read == 0 {
-			break
+			return nil, errors.New("Short Read")
 		}
 
 		total_read += actual_read
@@ -146,11 +147,11 @@ func send(conn net.Conn, buffer []byte) (int, error) {
 
 		actual_wrote, err := conn.Write(buffer[total_wrote:])
 		if err != nil {
-			return total_wrote, err
+			return -1, err
 		}
 
 		if actual_wrote == 0 {
-			break
+			return -1, errors.New("Short write")
 		}
 
 		total_wrote += actual_wrote

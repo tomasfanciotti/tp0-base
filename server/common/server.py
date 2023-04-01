@@ -7,8 +7,11 @@ import concurrent
 from concurrent.futures import ThreadPoolExecutor
 
 
-# OpCodes
+# Excepcionales
+OP_CODE_CORRUPTED_REQUEST = -1
 OP_CODE_ZERO = 0
+
+# OpCodes
 OP_CODE_REGISTER = 1
 OP_CODE_REGISTER_ACK = 2
 OP_CODE_REGISTER_BATCH = 3
@@ -44,7 +47,7 @@ class Server:
             while self.listening:
                 try:
                     client_sock = self.__accept_new_connection()
-                    #self.__handle_client_connection(client_sock)
+                    # self.__handle_client_connection(client_sock)
 
                     executor.submit(self.__handle_client_connection, client_sock)
 
@@ -123,6 +126,12 @@ class Server:
                         response = Packet.new(OP_CODE_WINNERS, winners)
                         send(client_sock, response)
                         logging.info(f'action: consulta_ganadores | result: success | client_id : {agency_id} | winners: {winners}')
+
+                elif packet.opcode == OP_CODE_CORRUPTED_REQUEST:
+
+                    response = Packet.new(OP_CODE_CORRUPTED_REQUEST, "")
+                    send(client_sock, response)
+                    logging.error(f'action: request_corrupta | result: fail | ip: {addr[0]}')
 
                 elif packet.opcode == OP_CODE_ZERO:
                     logging.info(f'action: disconnected | result: success | ip: {addr[0]}')
